@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ピアノアプリ</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>ピアノアプリ</h1>
+    <div class="piano">
+        <div class="key" data-note="pianoC">ド</div>
+        <div class="key" data-note="pianoD">レ</div>
+        <div class="key" data-note="pianoE">ミ</div>
+        <div class="key" data-note="pianoF">ファ</div>
+        <div class="key" data-note="pianoG">ソ</div>
+        <div class="key" data-note="pianoA">ラ</div>
+        <div class="key" data-note="pianoB">シ</div>
+        <div class="key" data-note="pianoC2">ド2</div>
+    </div>
+    <button id="startRecording">録音開始</button>
+    <button id="stopRecording" disabled>録音停止</button>
+    <button id="save">記録する</button>
+    <button id="play">再生する</button>
+    
+    <script>
+        $(document).ready(function() {
+            let recording = false; // 録音状態を管理
+            const recordedNotes = [];
+
+            // 録音開始ボタン
+            $('#startRecording').on('click', function() {
+                recording = true;
+                $(this).prop('disabled', true); // 録音開始ボタンを無効化
+                $('#stopRecording').prop('disabled', false); // 録音停止ボタンを有効化
+            });
+
+            // 録音停止ボタン
+            $('#stopRecording').on('click', function() {
+                recording = false;
+                $(this).prop('disabled', true); // 録音停止ボタンを無効化
+                $('#startRecording').prop('disabled', false); // 録音開始ボタンを有効化
+            });
+
+            // 鍵盤をクリックしたときの音再生と記録
+            $('.key').on('click', function() {
+                const note = $(this).data('note'); // data-note 属性を取得
+                playSound(note);
+                if (recording) {
+                    recordedNotes.push(note); // 録音中なら記録
+                }
+            });
+
+            // 音を再生する関数
+            function playSound(note) {
+                const audio = new Audio(`sounds/${note}.mp3`); // "sounds" フォルダに音声ファイルを配置
+                audio.play();
+            }
+
+            // 記録をPHPに送信
+            $('#save').on('click', function() {
+                $.ajax({
+                    url: 'save.php',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ notes: recordedNotes }),
+                    success: function(response) {
+                        alert(response); // サーバーからの応答を表示
+                    },
+                    error: function(xhr, status, error) {
+                        alert('保存エラー: ' + error);
+                    }
+                });
+            });
+
+            // 記録を再生
+            $('#play').on('click', function() {
+                $.ajax({
+                    url: 'load.php',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        let delay = 0;
+                        $.each(data.notes, function(index, note) {
+                            setTimeout(function() {
+                                playSound(note);
+                            }, delay);
+                            delay += 500; // 各音の間隔
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        alert('読み込みエラー: ' + error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
